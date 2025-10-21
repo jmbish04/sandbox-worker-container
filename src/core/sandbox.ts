@@ -3,11 +3,11 @@ import type { Env } from '../types';
 
 export const DEFAULT_SANDBOX_ID = 'repo-agent-default';
 
-export const getDefaultSandbox = (env: Env) => getSandbox(env.Sandbox, DEFAULT_SANDBOX_ID);
+export const getDefaultSandbox = (env: Env) => getSandbox(env.Sandbox as any, DEFAULT_SANDBOX_ID);
 
 export const forwardToSandbox = (request: Request, env: Env) => {
   const sandbox = getDefaultSandbox(env);
-  return proxyToSandbox(request, sandbox);
+  return proxyToSandbox(request, sandbox as any);
 };
 
 export const runSandboxHealthcheck = async (env: Env) => {
