@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repo Agent Worker</title>
+    <link rel="stylesheet" href="/assets/main.css" />
+    <script src="/assets/app.js" defer></script>
+    <script src="/assets/nav.js" defer></script>
+  </head>
+  <body class="bg-slate-950 text-white h-full">
+    <div data-status-bar class="sticky top-0 z-50 cursor-pointer bg-blue-900/80 backdrop-blur text-white">
+      <div class="max-w-6xl mx-auto flex items-center gap-3 px-4 py-2 text-sm">
+        <div class="flex items-center gap-2">
+          <div data-status-spinner class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+          <span data-status-text>Status: Idle</span>
+        </div>
+        <span class="text-xs text-blue-200">Click to open the live dashboard</span>
+      </div>
+    </div>
+
+    <header data-nav-placeholder></header>
+
+    <main class="max-w-6xl mx-auto px-4 py-16 space-y-16">
+      <section class="grid md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-6">
+          <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">Welcome to Repo-Agent-Worker</h1>
+          <p class="text-lg text-slate-200">
+            Orchestrate repository operations with real-time feedback, containerized sandboxes, and AI-assisted workflows. Deploy
+            consistent pathways your developers can rely on, from running full test suites to generating analytics.
+          </p>
+          <div class="flex flex-wrap gap-4">
+            <a
+              href="/features/testing.html"
+              class="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 transition text-white font-semibold"
+              >Explore Testing</a
+            >
+            <a
+              href="/openapi.html"
+              class="px-6 py-3 rounded-lg border border-white/20 hover:border-white/60 text-white font-semibold"
+              >View API</a
+            >
+          </div>
+        </div>
+        <div class="bg-slate-900/80 rounded-3xl border border-white/10 shadow-2xl p-8">
+          <h2 class="text-xl font-semibold mb-4">Live Status Highlights</h2>
+          <ul class="space-y-4 text-sm text-slate-200">
+            <li class="flex items-start gap-3">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/60">1</span>
+              <div>
+                <p class="font-semibold">Real-time WebSocket streaming</p>
+                <p class="text-slate-400">Monitor AI reasoning, terminal output, and task progress instantly.</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/60">2</span>
+              <div>
+                <p class="font-semibold">Dynamic OpenAPI contracts</p>
+                <p class="text-slate-400">Generate up-to-date documentation for your well-lit pathways.</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/60">3</span>
+              <div>
+                <p class="font-semibold">SaaS-grade experience</p>
+                <p class="text-slate-400">Tailwind and Flowbite power a cohesive operator console.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-3xl font-bold mb-8">Choose a pathway</h2>
+        <div class="grid gap-8 md:grid-cols-2">
+          <article class="max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex flex-col justify-between h-full p-5">
+              <div class="space-y-3">
+                <h3 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Run Tests</h3>
+                <p class="font-normal text-gray-700 dark:text-gray-400">
+                  Spin up a sandbox, install dependencies, and execute curated frontend or backend suites with streaming output.
+                </p>
+              </div>
+              <a
+                href="/features/testing.html"
+                class="inline-flex items-center px-3 py-2 mt-6 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                >Learn more
+                <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 5 4 4 8-8" />
+                </svg>
+              </a>
+            </div>
+          </article>
+          <article class="max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex flex-col justify-between h-full p-5">
+              <div class="space-y-3">
+                <h3 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Standardize Repo</h3>
+                <p class="font-normal text-gray-700 dark:text-gray-400">
+                  Apply templates, linting rules, and repository conventions across every service with minimal configuration.
+                </p>
+              </div>
+              <a
+                href="/features/standardize.html"
+                class="inline-flex items-center px-3 py-2 mt-6 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                >Learn more
+                <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 5 4 4 8-8" />
+                </svg>
+              </a>
+            </div>
+          </article>
+          <article class="max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex flex-col justify-between h-full p-5">
+              <div class="space-y-3">
+                <h3 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Reproduce Error</h3>
+                <p class="font-normal text-gray-700 dark:text-gray-400">
+                  Capture failing scenarios with deterministic containers, logs, and reproduction scripts for downstream debugging.
+                </p>
+              </div>
+              <a
+                href="/features/reproduce-error.html"
+                class="inline-flex items-center px-3 py-2 mt-6 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                >Learn more
+                <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 5 4 4 8-8" />
+                </svg>
+              </a>
+            </div>
+          </article>
+          <article class="max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex flex-col justify-between h-full p-5">
+              <div class="space-y-3">
+                <h3 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Analyze Data</h3>
+                <p class="font-normal text-gray-700 dark:text-gray-400">
+                  Generate reports, evaluate metrics, and visualize repo health indicators powered by AI summarization.
+                </p>
+              </div>
+              <a
+                href="/features/analyzer.html"
+                class="inline-flex items-center px-3 py-2 mt-6 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                >Learn more
+                <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 5 4 4 8-8" />
+                </svg>
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-white/10 mt-16 py-6">
+      <div class="max-w-6xl mx-auto px-4 text-sm text-slate-400">
+        &copy; <span id="footer-year"></span> Repo Agent Worker. All rights reserved.
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById('footer-year').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

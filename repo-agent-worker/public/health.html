@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Health • Repo Agent Worker</title>
+    <link rel="stylesheet" href="/assets/main.css" />
+    <script src="/assets/app.js" defer></script>
+    <script src="/assets/nav.js" defer></script>
+  </head>
+  <body class="bg-slate-950 text-white h-full">
+    <div data-status-bar class="sticky top-0 z-50 cursor-pointer bg-blue-900/80 backdrop-blur text-white">
+      <div class="max-w-5xl mx-auto flex items-center gap-3 px-4 py-2 text-sm">
+        <div class="flex items-center gap-2">
+          <div data-status-spinner class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+          <span data-status-text>Status: Idle</span>
+        </div>
+        <span class="text-xs text-blue-200">Tap to open the streaming dashboard</span>
+      </div>
+    </div>
+
+    <header data-nav-placeholder></header>
+
+    <main class="max-w-5xl mx-auto px-4 py-12 space-y-10">
+      <section class="space-y-4">
+        <h1 class="text-3xl font-bold">Worker Health</h1>
+        <p class="text-slate-300">
+          Validate bindings, sandbox connectivity, and AI integrations before shipping a task.
+        </p>
+        <button
+          type="button"
+          data-health-check
+          class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 text-emerald-950 font-semibold hover:bg-emerald-400 transition"
+        >
+          <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12h2.25l2.25 6 3-12 2.25 6h4.5" />
+          </svg>
+          Run Health Checks
+        </button>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">Results</h2>
+        <pre
+          data-health-output
+          class="bg-black/60 border border-white/10 rounded-xl p-4 text-sm text-emerald-200 min-h-[240px] overflow-x-auto"
+        >Health checks have not run yet.</pre>
+      </section>
+    </main>
+  </body>
+</html>

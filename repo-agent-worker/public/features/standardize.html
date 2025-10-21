@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Standardize Repo • Repo Agent Worker</title>
+    <link rel="stylesheet" href="/assets/main.css" />
+    <script src="/assets/app.js" defer></script>
+    <script src="/assets/nav.js" defer></script>
+  </head>
+  <body class="bg-slate-950 text-white h-full">
+    <div data-status-bar class="sticky top-0 z-50 cursor-pointer bg-blue-900/80 backdrop-blur text-white">
+      <div class="max-w-5xl mx-auto flex items-center gap-3 px-4 py-2 text-sm">
+        <div class="flex items-center gap-2">
+          <div data-status-spinner class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+          <span data-status-text>Status: Idle</span>
+        </div>
+        <span class="text-xs text-blue-200">Click to observe the dashboard feed</span>
+      </div>
+    </div>
+
+    <header data-nav-placeholder></header>
+
+    <main class="max-w-5xl mx-auto px-4 py-12 space-y-12">
+      <section class="space-y-3">
+        <p class="text-sm uppercase tracking-[0.3em] text-blue-300">Pathway</p>
+        <h1 class="text-3xl font-bold">Repository Standardization</h1>
+        <p class="text-slate-300">
+          Apply templates, upgrade dependencies, and codify best practices in one guided flow.
+        </p>
+      </section>
+
+      <section class="grid gap-10 lg:grid-cols-2">
+        <form class="space-y-6 bg-slate-900/70 border border-white/10 rounded-3xl p-8" data-pathway="standardize">
+          <div class="space-y-2">
+            <label class="text-sm font-semibold uppercase tracking-wide" for="standardize-repo">GitHub URL</label>
+            <input
+              id="standardize-repo"
+              name="repo_url"
+              type="url"
+              required
+              placeholder="https://github.com/org/repo"
+              class="w-full rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-semibold uppercase tracking-wide" for="standardize-branch">Branch</label>
+            <input
+              id="standardize-branch"
+              name="branch"
+              type="text"
+              placeholder="main"
+              class="w-full rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-semibold uppercase tracking-wide" for="standardize-prompt">Prompt</label>
+            <textarea
+              id="standardize-prompt"
+              name="prompt"
+              rows="5"
+              class="w-full rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            ></textarea>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" data-prompt-target="standardize-prompt" data-prompt-text="Apply the shared ESLint + Prettier config and update CI workflows."
+                class="px-3 py-2 text-xs rounded-lg bg-blue-600/70 hover:bg-blue-600">Align linting + CI</button>
+              <button type="button" data-prompt-target="standardize-prompt" data-prompt-text="Migrate project to pnpm workspace and refresh lockfiles."
+                class="px-3 py-2 text-xs rounded-lg bg-blue-600/70 hover:bg-blue-600">pnpm workspace</button>
+              <button type="button" data-prompt-target="standardize-prompt" data-prompt-text="Generate SECURITY.md and CODEOWNERS templates."
+                class="px-3 py-2 text-xs rounded-lg bg-blue-600/70 hover:bg-blue-600">Docs sweep</button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-500 transition"
+          >
+            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            Standardize Repo
+          </button>
+        </form>
+
+        <div class="space-y-4">
+          <div class="bg-slate-900/70 border border-white/10 rounded-3xl p-6 flex flex-col gap-4">
+            <h2 class="text-xl font-semibold">Agent Thinking</h2>
+            <div id="ai-thoughts-log" class="h-72 overflow-y-auto space-y-3">
+              <p class="text-sm text-slate-400">Insights will populate as the pathway runs.</p>
+            </div>
+          </div>
+          <div class="bg-slate-900/70 border border-white/10 rounded-3xl p-6 flex flex-col gap-4">
+            <h2 class="text-xl font-semibold">Container Console</h2>
+            <div id="terminal-log" class="h-72 overflow-y-auto bg-black/60 rounded-xl p-4 font-mono text-xs text-green-200">
+              <p>Pending run output…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

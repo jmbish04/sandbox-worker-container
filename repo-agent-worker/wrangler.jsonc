@@ -24,6 +24,10 @@
       "tag": "v1_sandbox_init"
     }
   ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./public"
+  },
   "ai": {
     "binding": "AI"
   },
