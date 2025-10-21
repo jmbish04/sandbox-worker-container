@@ -15,6 +15,22 @@
       {
         "class_name": "Sandbox",
         "name": "Sandbox"
+      },
+      {
+        "class_name": "TaskOrchestratorActor",
+        "name": "TASK_ORCHESTRATOR"
+      },
+      {
+        "class_name": "ErrorRecreationAgent",
+        "name": "AGENT_ERROR_RECREATION"
+      },
+      {
+        "class_name": "SolutionValidationAgent",
+        "name": "AGENT_SOLUTION_VALIDATION"
+      },
+      {
+        "class_name": "TestingAgent",
+        "name": "AGENT_TESTING"
       }
     ]
   },
@@ -22,6 +38,31 @@
     {
       "new_sqlite_classes": ["Sandbox"],
       "tag": "v1_sandbox_init"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "repo-agent-db",
+      "database_id": "YOUR_DB_ID_HERE"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "TASK_CACHE",
+      "id": "YOUR_KV_ID_HERE"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CONTAINER_ASSETS",
+      "bucket_name": "repo-agent-assets"
+    }
+  ],
+  "queues": [
+    {
+      "binding": "TASK_QUEUE",
+      "queue_name": "repo-agent-task-queue"
     }
   ],
   "assets": {

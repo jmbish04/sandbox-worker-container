@@ -4,8 +4,8 @@ import { handleWebSocket } from './core/websocket';
 import { getOpenAPISpec } from './api/openapi';
 import { apiRoutes } from './api/routes';
 import type { Env } from './types';
-
-export { Sandbox };
+import { TaskOrchestratorActor } from './orchestration/task-orchestrator';
+import { ErrorRecreationAgent, SolutionValidationAgent, TestingAgent } from './orchestration/agents';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -22,18 +22,58 @@ app.get('/ws', (c) => {
 app.get('*', async (c) => {
   const assetResponse = await c.env.ASSETS.fetch(c.req.raw);
   if (assetResponse.status !== 404) {
-    return assetResponse;
+    return assetResponse as Response;
   }
 
-  const sandbox = getSandbox(c.env.Sandbox, 'default-sandbox');
-  return proxyToSandbox(c.req.raw, sandbox);
+  const sandbox = getSandbox(c.env.Sandbox as any, 'default-sandbox');
+  const response = await proxyToSandbox(c.req.raw, sandbox as any);
+  return response ?? new Response('Sandbox unavailable', { status: 502 });
 });
 
 app.all('*', async (c) => {
-  const sandbox = getSandbox(c.env.Sandbox, 'default-sandbox');
-  return proxyToSandbox(c.req.raw, sandbox);
+  const sandbox = getSandbox(c.env.Sandbox as any, 'default-sandbox');
+  const response = await proxyToSandbox(c.req.raw, sandbox as any);
+  return response ?? new Response('Sandbox unavailable', { status: 502 });
 });
+
+type QueueMessage<T> = {
+  body: T;
+};
+
+type QueueBatch<T> = {
+  messages: Array<QueueMessage<T>>;
+};
+
+type TaskQueuePayload = { taskId?: string };
+
+const QUEUE_ORCHESTRATOR_NAME = 'main-orchestrator';
 
 export default {
   fetch: app.fetch,
+  queue: async (batch: QueueBatch<TaskQueuePayload>, env: Env) => {
+    const orchestratorId = env.TASK_ORCHESTRATOR.idFromName(QUEUE_ORCHESTRATOR_NAME);
+    const orchestrator = env.TASK_ORCHESTRATOR.get(orchestratorId);
+
+    for (const message of batch.messages) {
+      const taskId = message.body?.taskId;
+      if (!taskId) {
+        console.warn('Received queue message without taskId');
+        continue;
+      }
+
+      try {
+        await orchestrator.fetch('https://orchestrator/start', {
+          method: 'POST',
+          body: JSON.stringify({ taskId }),
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+      } catch (error) {
+        console.error('Failed to start task orchestrator', error);
+      }
+    }
+  },
 };
+
+export { Sandbox, TaskOrchestratorActor, ErrorRecreationAgent, SolutionValidationAgent, TestingAgent };

@@ -14,6 +14,7 @@
     "watch:css": "tailwindcss -i ./public/assets/styles.css -o ./public/assets/main.css --watch"
   },
   "dependencies": {
+    "@cloudflare/agents": "^0.0.16",
     "@cloudflare/sandbox": "^0.4.3",
     "flowbite": "^2.5.2",
     "hono": "^4.6.8"

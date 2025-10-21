@@ -1,13 +1,17 @@
 import type { Env, LogMessage } from '../types';
+import { getCachedTaskLogs } from './d1';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
-const encodeMessage = (message: LogMessage) => JSON.stringify({
-  ...message,
-  timestamp: message.timestamp ?? new Date().toISOString(),
-});
+const encodeMessage = (message: LogMessage) =>
+  JSON.stringify({
+    ...message,
+    timestamp: message.timestamp ?? new Date().toISOString(),
+  });
 
-export function handleWebSocket(request: Request, _env: Env): Response {
+const LOG_POLL_INTERVAL = 2_000;
+
+export function handleWebSocket(request: Request, env: Env): Response {
   const upgradeHeader = request.headers.get('Upgrade');
   if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
     return new Response('Expected WebSocket upgrade', { status: 426 });
@@ -17,6 +21,7 @@ export function handleWebSocket(request: Request, _env: Env): Response {
   const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
 
   let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let poller: ReturnType<typeof setInterval> | undefined;
 
   const send = (message: LogMessage) => {
     try {
@@ -28,11 +33,46 @@ export function handleWebSocket(request: Request, _env: Env): Response {
 
   server.accept();
 
-  send({ type: 'status_update', content: 'Connected to repo-agent-worker' });
+  const { searchParams } = new URL(request.url);
+  const taskId = searchParams.get('task_id');
+
+  if (!taskId) {
+    send({ type: 'error', content: 'task_id query parameter is required' });
+    server.close(1008, 'task_id is required');
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
+  }
+
+  send({ type: 'status_update', content: `Connected to repo-agent-worker for task ${taskId}` });
 
   heartbeat = setInterval(() => {
     send({ type: 'status_update', content: 'heartbeat' });
   }, HEARTBEAT_INTERVAL);
+
+  let lastSent = 0;
+
+  const pollLogs = async () => {
+    try {
+      const cachedLogs = await getCachedTaskLogs(env.TASK_CACHE, taskId);
+      if (!cachedLogs.length || cachedLogs.length === lastSent) {
+        return;
+      }
+
+      for (let index = lastSent; index < cachedLogs.length; index += 1) {
+        send(cachedLogs[index]);
+      }
+      lastSent = cachedLogs.length;
+    } catch (error) {
+      console.error('Failed to poll cached logs', error);
+    }
+  };
+
+  pollLogs().catch((error) => console.error('Initial log poll failed', error));
+  poller = setInterval(() => {
+    pollLogs().catch((error) => console.error('Repeated log poll failed', error));
+  }, LOG_POLL_INTERVAL);
 
   server.addEventListener('message', (event) => {
     if (typeof event.data !== 'string') {
@@ -49,6 +89,9 @@ export function handleWebSocket(request: Request, _env: Env): Response {
     if (heartbeat) {
       clearInterval(heartbeat);
     }
+    if (poller) {
+      clearInterval(poller);
+    }
   });
 
   server.addEventListener('error', (event) => {
@@ -60,6 +103,9 @@ export function handleWebSocket(request: Request, _env: Env): Response {
     }
     if (heartbeat) {
       clearInterval(heartbeat);
+    }
+    if (poller) {
+      clearInterval(poller);
     }
   });
 
