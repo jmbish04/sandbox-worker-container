@@ -1,68 +1,97 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "repo-agent-worker",
+  "name": "multi-agent-orchestration-system",
   "main": "src/index.ts",
-  "compatibility_date": "2025-02-11",
-  "compatibility_flags": ["nodejs_compat"],
-  "containers": [
-    {
-      "class_name": "Sandbox",
-      "image": "./Dockerfile"
-    }
-  ],
+  "compatibility_date": "2024-10-22",
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "Sandbox",
-        "name": "Sandbox"
+        "name": "SANDBOX",
+        "class_name": "Sandbox"
       },
       {
-        "class_name": "TaskOrchestratorActor",
-        "name": "TASK_ORCHESTRATOR"
+        "name": "TASK_ORCHESTRATOR",
+        "class_name": "TaskOrchestratorActor"
       },
       {
-        "class_name": "ErrorRecreationAgent",
-        "name": "AGENT_ERROR_RECREATION"
+        "name": "AGENT_ERROR_RECREATION",
+        "class_name": "ErrorRecreationAgent"
       },
       {
-        "class_name": "SolutionValidationAgent",
-        "name": "AGENT_SOLUTION_VALIDATION"
+        "name": "AGENT_SOLUTION_VALIDATION",
+        "class_name": "SolutionValidationAgent"
       },
       {
-        "class_name": "TestingAgent",
-        "name": "AGENT_TESTING"
+        "name": "AGENT_TESTING",
+        "class_name": "TestingAgent"
       }
     ]
   },
-  "migrations": [
+  "workflows": [
     {
-      "new_sqlite_classes": ["Sandbox"],
-      "tag": "v1_sandbox_init"
+      "name": "ERROR_WORKFLOW",
+      "binding": "ERROR_WORKFLOW",
+      "class_name": "ErrorAnalysisWorkflow"
+    },
+    {
+      "name": "VALIDATION_WORKFLOW",
+      "binding": "VALIDATION_WORKFLOW",
+      "class_name": "ValidationWorkflow"
+    },
+    {
+      "name": "TESTING_WORKFLOW",
+      "binding": "TESTING_WORKFLOW",
+      "class_name": "TestingWorkflow"
     }
   ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "repo-agent-db",
-      "database_id": "YOUR_DB_ID_HERE"
-    }
-  ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "task-queue",
+        "binding": "TASK_QUEUE"
+      },
+      {
+        "queue": "result-queue",
+        "binding": "RESULT_QUEUE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "task-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
   "kv_namespaces": [
     {
-      "binding": "TASK_CACHE",
-      "id": "YOUR_KV_ID_HERE"
+      "binding": "KV_STATE",
+      "id": "your-kv-namespace-id"
     }
   ],
   "r2_buckets": [
     {
-      "binding": "CONTAINER_ASSETS",
-      "bucket_name": "repo-agent-assets"
+      "binding": "R2_ARTIFACTS",
+      "bucket_name": "agent-artifacts"
     }
   ],
-  "queues": [
+  "d1_databases": [
     {
-      "binding": "TASK_QUEUE",
-      "queue_name": "repo-agent-task-queue"
+      "binding": "D1_METRICS",
+      "database_id": "your-d1-database-id",
+      "database_name": "agent-metrics"
+    }
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Sandbox",
+        "TaskOrchestratorActor",
+        "ErrorRecreationAgent",
+        "SolutionValidationAgent",
+        "TestingAgent"
+      ]
     }
   ],
   "assets": {
@@ -72,6 +101,12 @@
   "ai": {
     "binding": "AI"
   },
+  "containers": [
+    {
+      "class_name": "Sandbox",
+      "image": "./Dockerfile"
+    }
+  ],
   "secrets": [
     "GITHUB_TOKEN",
     "OPENAI_API_KEY",

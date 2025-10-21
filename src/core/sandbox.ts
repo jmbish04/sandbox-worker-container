@@ -3,7 +3,7 @@ import type { Env } from '../types';
 
 export const DEFAULT_SANDBOX_ID = 'repo-agent-default';
 
-export const getDefaultSandbox = (env: Env) => getSandbox(env.Sandbox as any, DEFAULT_SANDBOX_ID);
+export const getDefaultSandbox = (env: Env) => getSandbox(env.SANDBOX as any, DEFAULT_SANDBOX_ID);
 
 export const forwardToSandbox = (request: Request, env: Env) => {
   const sandbox = getDefaultSandbox(env);

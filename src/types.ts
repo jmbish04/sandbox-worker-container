@@ -1,27 +1,19 @@
+import type { AgentNamespace } from '@cloudflare/agents';
+import type { Sandbox } from './orchestration/sandbox-agent';
+import type { TaskOrchestratorActor } from './orchestration/task-orchestrator';
+import type {
+  ErrorRecreationAgent,
+  SolutionValidationAgent,
+  TestingAgent,
+} from './orchestration/agents';
+import type {
+  TestingWorkflowResult,
+  ValidationWorkflowResult,
+  WorkflowBinding,
+} from './orchestration/state';
+
 export interface Fetcher {
   fetch(input: Request | string, init?: RequestInit): Promise<Response>;
-}
-
-export interface DurableObjectId {}
-
-export interface DurableObjectStub {
-  fetch(input: Request | string, init?: RequestInit): Promise<Response>;
-}
-
-export interface DurableObjectNamespace<T extends object = DurableObjectStub> {
-  idFromName(name: string): DurableObjectId;
-  get(id: DurableObjectId): T;
-}
-
-export interface DurableObjectStorage {
-  get<T>(key: string): Promise<T | undefined>;
-  put<T>(key: string, value: T): Promise<void>;
-  delete(key: string): Promise<void>;
-}
-
-export interface DurableObjectState {
-  storage: DurableObjectStorage;
-  waitUntil(promise: Promise<unknown>): void;
 }
 
 export interface KvNamespace {
@@ -39,22 +31,42 @@ export interface R2Bucket {
   put(key: string, value: ArrayBuffer | ArrayBufferView | string): Promise<void>;
 }
 
-export interface WorkerQueue<T = unknown> {
+export interface Queue<T = unknown> {
   send(message: T): Promise<void>;
 }
 
+export interface D1Statement<T = unknown> {
+  bind(...values: unknown[]): D1PreparedStatement<T>;
+}
+
+export interface D1PreparedStatement<T = unknown> {
+  run(): Promise<void>;
+  all(): Promise<{ results: T[] }>;
+  first<TRow = T>(): Promise<TRow | null>;
+}
+
+export interface D1Database {
+  prepare<T = unknown>(query: string): D1Statement<T>;
+}
+
 export interface Env {
-  Sandbox: DurableObjectNamespace;
-  TASK_ORCHESTRATOR: DurableObjectNamespace;
-  AGENT_ERROR_RECREATION: DurableObjectNamespace;
-  AGENT_SOLUTION_VALIDATION: DurableObjectNamespace;
-  AGENT_TESTING: DurableObjectNamespace;
+  SANDBOX: AgentNamespace<Sandbox>;
+  TASK_ORCHESTRATOR: AgentNamespace<TaskOrchestratorActor>;
+  AGENT_ERROR_RECREATION: AgentNamespace<ErrorRecreationAgent>;
+  AGENT_SOLUTION_VALIDATION: AgentNamespace<SolutionValidationAgent>;
+  AGENT_TESTING: AgentNamespace<TestingAgent>;
+  ERROR_WORKFLOW: WorkflowBinding;
+  VALIDATION_WORKFLOW: WorkflowBinding<ValidationWorkflowResult>;
+  TESTING_WORKFLOW: WorkflowBinding<TestingWorkflowResult>;
+  TASK_QUEUE: Queue<{ taskId: string; type?: string }>;
+  RESULT_QUEUE: Queue<Record<string, unknown>>;
+  KV_STATE: KvNamespace;
+  R2_ARTIFACTS: R2Bucket;
+  D1_METRICS: D1Database;
+  DB?: D1Database;
+  TASK_CACHE?: KvNamespace;
   ASSETS: Fetcher;
   AI: Record<string, unknown>;
-  DB: unknown;
-  TASK_CACHE: KvNamespace;
-  CONTAINER_ASSETS: R2Bucket;
-  TASK_QUEUE: WorkerQueue<{ taskId: string }>;
   GITHUB_TOKEN?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
