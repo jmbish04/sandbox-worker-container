@@ -31,6 +31,22 @@
       {
         "class_name": "TestingAgent",
         "name": "AGENT_TESTING"
+      },
+      {
+        "class_name": "TravelAgentDO",
+        "name": "TRAVEL_AGENT"
+      },
+      {
+        "class_name": "ScrapingAgentDO",
+        "name": "SCRAPING_AGENT"
+      },
+      {
+        "class_name": "ConversationManagerDO",
+        "name": "CONVERSATION_MANAGER"
+      },
+      {
+        "class_name": "SessionManagerDO",
+        "name": "SESSION_MANAGER"
       }
     ]
   },

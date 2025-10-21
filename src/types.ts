@@ -49,6 +49,10 @@ export interface Env {
   AGENT_ERROR_RECREATION: DurableObjectNamespace;
   AGENT_SOLUTION_VALIDATION: DurableObjectNamespace;
   AGENT_TESTING: DurableObjectNamespace;
+  TRAVEL_AGENT: DurableObjectNamespace;
+  SCRAPING_AGENT: DurableObjectNamespace;
+  CONVERSATION_MANAGER: DurableObjectNamespace;
+  SESSION_MANAGER: DurableObjectNamespace;
   ASSETS: Fetcher;
   AI: Record<string, unknown>;
   DB: unknown;

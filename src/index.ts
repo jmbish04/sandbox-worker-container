@@ -6,6 +6,7 @@ import { apiRoutes } from './api/routes';
 import type { Env } from './types';
 import { TaskOrchestratorActor } from './orchestration/task-orchestrator';
 import { ErrorRecreationAgent, SolutionValidationAgent, TestingAgent } from './orchestration/agents';
+import { AgentFactory } from './core/agent-factory';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -14,6 +15,29 @@ app.get('/openapi.json', (c) => {
 });
 
 app.route('/api', apiRoutes);
+
+app.post('/chat', async (c) => {
+  const body = await c.req.json<{
+    message: unknown;
+    sessionId?: string;
+    userId?: string;
+  }>();
+
+  const agentFactory = new AgentFactory(c.env);
+  const conversationManager = await agentFactory.createConversationManager(body.sessionId ?? 'default');
+
+  const response = await conversationManager.fetch('https://agent/message', {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'route_message',
+      content: { message: body.message },
+      context: { userId: body.userId, sessionId: body.sessionId ?? 'default' },
+    }),
+    headers: { 'content-type': 'application/json' },
+  });
+
+  return response;
+});
 
 app.get('/ws', (c) => {
   return handleWebSocket(c.req.raw, c.env);
@@ -76,4 +100,14 @@ export default {
   },
 };
 
-export { Sandbox, TaskOrchestratorActor, ErrorRecreationAgent, SolutionValidationAgent, TestingAgent };
+export {
+  Sandbox,
+  TaskOrchestratorActor,
+  ErrorRecreationAgent,
+  SolutionValidationAgent,
+  TestingAgent,
+};
+export { TravelAgentDO } from './durable-objects/travel-agent-do';
+export { ScrapingAgentDO } from './durable-objects/scraping-agent-do';
+export { ConversationManagerDO } from './durable-objects/conversation-manager-do';
+export { SessionManagerDO } from './durable-objects/session-manager-do';
