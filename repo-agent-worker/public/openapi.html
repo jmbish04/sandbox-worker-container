@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Docs • Repo Agent Worker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.min.css" />
+    <link rel="stylesheet" href="/assets/main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.min.js" defer></script>
+    <script src="/assets/app.js" defer></script>
+    <script src="/assets/nav.js" defer></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!window.SwaggerUIBundle) return;
+        window.SwaggerUIBundle({
+          url: '/openapi.json',
+          dom_id: '#swagger-ui',
+          presets: [window.SwaggerUIBundle.presets.apis],
+          layout: 'BaseLayout',
+          deepLinking: true,
+        });
+      });
+    </script>
+  </head>
+  <body class="bg-slate-950 text-white h-full">
+    <div data-status-bar class="sticky top-0 z-50 cursor-pointer bg-blue-900/80 backdrop-blur text-white">
+      <div class="max-w-6xl mx-auto flex items-center gap-3 px-4 py-2 text-sm">
+        <div class="flex items-center gap-2">
+          <div data-status-spinner class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+          <span data-status-text>Status: Idle</span>
+        </div>
+        <span class="text-xs text-blue-200">Click to jump into the dashboard</span>
+      </div>
+    </div>
+
+    <header data-nav-placeholder></header>
+
+    <main class="max-w-6xl mx-auto px-4 py-10 space-y-6">
+      <header>
+        <h1 class="text-3xl font-bold">Repo Agent Worker API</h1>
+        <p class="text-slate-300">Review pathway contracts and stream endpoints derived from the live worker.</p>
+      </header>
+      <div id="swagger-ui" class="bg-white rounded-xl"></div>
+    </main>
+  </body>
+</html>

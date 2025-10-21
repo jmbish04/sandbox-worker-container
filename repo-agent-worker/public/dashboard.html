@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Dashboard • Repo Agent Worker</title>
+    <link rel="stylesheet" href="/assets/main.css" />
+    <script src="/assets/app.js" defer></script>
+    <script src="/assets/nav.js" defer></script>
+  </head>
+  <body class="bg-slate-950 text-white h-full">
+    <div data-status-bar class="sticky top-0 z-50 cursor-pointer bg-blue-900/80 backdrop-blur text-white">
+      <div class="max-w-6xl mx-auto flex items-center gap-3 px-4 py-2 text-sm">
+        <div class="flex items-center gap-2">
+          <div data-status-spinner class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+          <span data-status-text>Status: Idle</span>
+        </div>
+        <span class="text-xs text-blue-200">Click to return to dashboard home</span>
+      </div>
+    </div>
+
+    <header data-nav-placeholder></header>
+
+    <main class="max-w-6xl mx-auto px-4 py-10 space-y-8">
+      <header>
+        <h1 class="text-3xl font-bold">Real-time Execution Dashboard</h1>
+        <p class="text-slate-300 mt-2">
+          Observe the agent&apos;s chain of thought alongside sandbox terminal output. Logs stream live over WebSocket.
+        </p>
+      </header>
+
+      <section class="grid gap-6 md:grid-cols-2">
+        <div class="bg-slate-900/70 border border-white/10 rounded-2xl p-6 flex flex-col max-h-[70vh]">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Agent Thinking</h2>
+            <span class="text-xs uppercase tracking-wide text-slate-400">AI Thoughts</span>
+          </div>
+          <div id="ai-thoughts-log" class="flex-1 overflow-y-auto space-y-3 pr-2">
+            <p class="text-sm text-slate-400">Connect a pathway to start streaming insights.</p>
+          </div>
+        </div>
+        <div class="bg-slate-900/70 border border-white/10 rounded-2xl p-6 flex flex-col max-h-[70vh]">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Container Console</h2>
+            <span class="text-xs uppercase tracking-wide text-slate-400">Terminal Logs</span>
+          </div>
+          <div id="terminal-log" class="flex-1 overflow-y-auto bg-black/60 rounded-lg p-4 font-mono text-xs leading-relaxed text-green-200">
+            <p>Waiting for sandbox output…</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
