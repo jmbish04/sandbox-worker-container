@@ -237,4 +237,431 @@ This is the core logic. You will refactor the API to be asynchronous and managed
         7.  It runs more commands (e.g., `apply patch`, `npm test`).
         8.  When finished, it updates the main task status: `updateTaskStatus(db, task_id, 'success')`.
 
+Here is a comprehensive prompt to scaffold the advanced, agentic architecture you've described.
+
+-----
+
+### Task: Architect and Scaffold the `repo-agent-worker` v2
+
+Your objective is to evolve the `repo-agent-worker` into a fully asynchronous, agentic, and observable platform. This new architecture will be built on the Cloudflare Agents SDK and will orchestrate tasks using Durable Objects (as Actors), Queues, and D1 for workflow state.
+
+This plan introduces a new, separate `github-service-worker` for specialized GitHub operations and leverages R2/KV for efficient asset and state management.
+
+-----
+
+### 1\. Phase 1: New Services & `wrangler.jsonc`
+
+Update your `repo-agent-worker/wrangler.jsonc` to define the new bindings for this architecture.
+
+```jsonc
+{
+  "name": "repo-agent-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-02-11",
+  "compatibility_flags": ["nodejs_compat"],
+  
+  // 1. ASSETS (Frontend)
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./public"
+  },
+  
+  // 2. SANDBOX (Execution)
+  "containers": [
+    { "class_name": "Sandbox", "image": "./Dockerfile" }
+  ],
+  
+  // 3. WORKFLOW (D1 for State)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "repo-agent-workflows",
+      "database_id": "YOUR_DB_ID_HERE"
+    }
+  ],
+  
+  // 4. ASYNC (Queue for Invocation)
+  "queues": [
+    {
+      "binding": "TASK_QUEUE",
+      "queue_name": "repo-agent-task-queue"
+    }
+  ],
+  
+  // 5. CACHE (KV for Real-time)
+  "kv_namespaces": [
+    {
+      "binding": "TASK_CACHE",
+      "id": "YOUR_KV_ID_HERE"
+    }
+  ],
+  
+  // 6. ASSETS (R2 for Scripts)
+  "r2_buckets": [
+    {
+      "binding": "CONTAINER_ASSETS",
+      "bucket_name": "repo-agent-assets"
+    }
+  ],
+
+  // 7. EXTERNAL SERVICES (AI & GitHub)
+  "ai": { "binding": "AI" },
+  "services": [
+    {
+      "binding": "GITHUB_SERVICE",
+      "service": "github-service-worker" 
+    }
+  ],
+  "secrets": [/* ...AI keys... */],
+  
+  // 8. ACTORS (Durable Objects)
+  "durable_objects": {
+    "bindings": [
+      // The Sandbox DO remains
+      { "class_name": "Sandbox", "name": "Sandbox" },
+      
+      // Manages the overall multi-step workflow
+      { "class_name": "WorkflowOrchestratorActor", "name": "WORKFLOW_ORCHESTRATOR" },
+      
+      // Hosts the "Reproducer" agent
+      { "class_name": "ReproducerActor", "name": "ACTOR_REPRODUCER" },
+      
+      // Hosts the "Validator" agent
+      { "class_name": "ValidatorActor", "name": "ACTOR_VALIDATOR" },
+      
+      // Hosts the "Tester" agent
+      { "class_name": "TesterActor", "name": "ACTOR_TESTER" }
+    ]
+  }
+}
+```
+
+-----
+
+### 2\. Phase 2: D1 Workflow & Logging Schema
+
+Create a new migration (`migrations/0002_agent_workflows.sql`) to store and track the state of every workflow.
+
+```sql
+-- Main table for a workflow, replacing 'task_requests'
+CREATE TABLE IF NOT EXISTS workflows (
+    id TEXT PRIMARY KEY, -- CUID/UUID generated at invocation
+    pathway TEXT NOT NULL, -- 'error_recreation', 'testing', etc.
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'running', 'success', 'failed'
+    initial_prompt TEXT,
+    repo_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP
+);
+
+-- Stores the state of each step in a multi-step workflow
+CREATE TABLE IF NOT EXISTS workflow_steps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id TEXT NOT NULL,
+    step_name TEXT NOT NULL, -- e.g., 'CloneRepo', 'RunTests'
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'running', 'success', 'failed'
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    input TEXT,
+    output TEXT,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_workflow_steps_workflow_id ON workflow_steps (workflow_id);
+
+-- Stores pre-defined bash/python scripts in R2
+CREATE TABLE IF NOT EXISTS r2_assets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE, -- e.g., 'playwright_harness.js'
+    description TEXT,
+    r2_key TEXT NOT NULL,
+    version TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- (Keep these tables from the previous prompt, but update the FK)
+CREATE TABLE IF NOT EXISTS ai_operation_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    agent_name TEXT NOT NULL,
+    thought TEXT,
+    prompt TEXT,
+    response TEXT,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operation_logs_workflow_id ON ai_operation_logs (workflow_id);
+
+CREATE TABLE IF NOT EXISTS container_operation_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    stream TEXT NOT NULL, -- 'stdin', 'stdout', 'stderr'
+    log_content TEXT NOT NULL,
+    exit_code INTEGER,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_container_operation_logs_workflow_id ON container_operation_logs (workflow_id);
+```
+
+-----
+
+### 3\. Phase 3: The `github-service-worker`
+
+Create a **new, separate worker project** for all GitHub operations.
+
+  * **Purpose**: This worker is a "GitHub master." It handles all `octokit` logic, authentication, and rate-limiting.
+  * **Bindings**: It only needs a `GITHUB_TOKEN` secret.
+  * **API (Hono)**:
+      * `POST /clone`: { repo\_url, branch } -\> Returns { success: true }
+      * `POST /get_pr_details`: { repo\_url, pr\_number } -\> Returns { title, body, ... }
+      * `POST /post_comment`: { repo\_url, pr\_number, body } -\> Returns { success: true }
+      * `POST /apply_patch`: { repo\_url, branch, patch } -\> Returns { success: true, commit\_sha }
+
+The `repo-agent-worker` will **no longer use `octokit`**. It will simply `fetch` this `GITHUB_SERVICE` binding.
+
+-----
+
+### 4\. Phase 4: Agentic Architecture Scaffolding
+
+This is the core of the `repo-agent-worker`. You will define the "Actors" (DOs) that host the "Agents" (Tools).
+
+**A. Define the `Toolbelt` (Context)**
+
+Create a type for the context that all agents need to operate.
+
+```typescript
+// src/types.ts
+
+// The context object passed to all agents.
+// It provides access to all bound services.
+export interface Toolbelt {
+  env: Env;
+  db: D1Database;
+  ai: Ai;
+  sandbox: DurableObjectStub<Sandbox>;
+  github: Service; // The github-service-worker
+  kv: KVNamespace;
+  r2: R2Bucket;
+  
+  // Helper for logging
+  logAi(workflowId: string, thought: string, ...): Promise<void>;
+  logContainer(workflowId: string, stream: string, ...): Promise<void>;
+}
+```
+
+**B. Define the "Agent" (The Tools)**
+
+This class defines the *tools* the AI can use. It is **stateless** and receives the `Toolbelt` in its constructor.
+
+```typescript
+// src/agents/RepoAgent.ts
+import { Agent } from '@cloudflare/agents';
+import type { Toolbelt } from '../types';
+
+// This class IS NOT a DO. It's a collection of tools.
+export class RepoAgent extends Agent {
+  toolbelt: Toolbelt;
+  workflowId: string;
+
+  constructor(workflowId: string, toolbelt: Toolbelt) {
+    super();
+    this.toolbelt = toolbelt;
+    this.workflowId = workflowId;
+    
+    // Bind methods so 'this' context is correct
+    this.cloneRepo = this.cloneRepo.bind(this);
+    this.runShellCommand = this.runShellCommand.bind(this);
+    this.runPlaywrightTests = this.runPlaywrightTests.bind(this);
+    this.applyAndPushFix = this.applyAndPushFix.bind(this);
+  }
+
+  // @tool
+  async cloneRepo(repoUrl: string, branch: string = 'main') {
+    await this.toolbelt.logAi(this.workflowId, `Cloning ${repoUrl}...`);
+    
+    // 1. Use the Sandbox
+    const result = await this.toolbelt.sandbox.exec(`git clone --branch ${branch} ${repoUrl} /workspace`);
+    await this.toolbelt.logContainer(this.workflowId, 'stdout', result.stdout);
+    
+    if (!result.success) throw new Error(result.stderr);
+    return `Successfully cloned ${repoUrl}`;
+  }
+
+  // @tool
+  async runShellCommand(command: string) {
+    await this.toolbelt.logAi(this.workflowId, `Running: ${command}`);
+    
+    const result = await this.toolbelt.sandbox.exec(command);
+    await this.toolbelt.logContainer(this.workflowId, 'stdout', result.stdout);
+    await this.toolbelt.logContainer(this.workflowId, 'stderr', result.stderr);
+    
+    return `Exit code: ${result.exitCode}. Output: ${result.stdout}`;
+  }
+
+  // @tool
+  async runPlaywrightTests(testPrompt: string) {
+    await this.toolbelt.logAi(this.workflowId, `Running Playwright tests for: ${testPrompt}`);
+
+    // 1. Get harness script from R2
+    const harness = await this.toolbelt.r2.get('playwright_harness.js');
+    await this.toolbelt.sandbox.writeFile('/workspace/run_tests.js', await harness.text());
+    
+    // 2. Generate the test
+    const aiTest = await this.toolbelt.ai.run('...model...', `Generate Playwright test: ${testPrompt}`);
+    await this.toolbelt.sandbox.writeFile('/workspace/test.spec.js', aiTest);
+    
+    // 3. Run harness
+    return this.runShellCommand('node /workspace/run_tests.js test.spec.js');
+  }
+
+  // @tool
+  async applyAndPushFix(repoUrl: string, branch: string, patch: string) {
+    await this.toolbelt.logAi(this.workflowId, `Applying and pushing patch...`);
+
+    // 1. Use the GITHUB_SERVICE, not octokit
+    const response = await this.toolbelt.github.fetch('/apply_patch', {
+      method: 'POST',
+      body: JSON.stringify({ repoUrl, branch, patch }),
+    });
+    
+    if (!response.ok) throw new Error('Failed to apply patch via GitHub service');
+    return `Patch applied successfully.`;
+  }
+}
+```
+
+**C. Define the "Actor" (The DO Host)**
+
+This is the Durable Object that *hosts* and *runs* the agent. You'll have one for each user journey (e.g., `ValidatorActor`).
+
+```typescript
+// src/actors/ValidatorActor.ts
+import { CfAgent } from '@cloudflare/agents';
+import { RepoAgent } from '../agents/RepoAgent';
+import { createToolbelt } from '../core/toolbelt'; // Helper to build the Toolbelt
+
+// This IS a Durable Object (Actor)
+export class ValidatorActor implements DurableObject {
+  state: DurableObjectState;
+  env: Env;
+  
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const { workflowId, prompt } = await request.json<any>();
+    
+    // 1. Create the Toolbelt (gets Sandbox DO, DB, etc.)
+    const toolbelt = await createToolbelt(this.env, workflowId);
+    
+    // 2. Instantiate our stateless Agent (with its tools)
+    const repoAgent = new RepoAgent(workflowId, toolbelt);
+    
+    // 3. Instantiate the Cloudflare Agent
+    const agent = new CfAgent(this.env.AI);
+    
+    // 4. Run the agent
+    // The AI will now use the prompt to decide which tools 
+    // from 'repoAgent' to call (e.g., cloneRepo, applyAndPushFix)
+    const result = await agent.run(prompt, {
+      tools: [
+        repoAgent.cloneRepo,
+        repoAgent.runShellCommand,
+        repoAgent.applyAndPushFix
+      ]
+    });
+    
+    return Response.json(result);
+  }
+}
+```
+
+**D. Define the "Workflow" (The Orchestrator DO)**
+
+This DO manages the *sequence* of Actor calls for complex, multi-step tasks.
+
+```typescript
+// src/actors/WorkflowOrchestratorActor.ts
+import { getD1Client } from '../core/d1';
+
+export class WorkflowOrchestratorActor implements DurableObject {
+  // ... constructor ...
+
+  async fetch(request: Request): Promise<Response> {
+    const { workflowId } = await request.json<any>();
+    const db = getD1Client(this.env.DB);
+    const workflow = await db.getWorkflow(workflowId);
+
+    // This is the "Workflow" logic
+    try {
+      if (workflow.pathway === 'solution_validation') {
+        // Step 1: Log
+        await db.logWorkflowStep(workflowId, 'RunValidation', 'running');
+        
+        // Step 2: Call the ValidatorActor
+        const validatorActor = this.env.ACTOR_VALIDATOR.get(
+          this.env.ACTOR_VALIDATOR.idFromName(workflowId)
+        );
+        const response = await validatorActor.fetch('/run', {
+          method: 'POST',
+          body: JSON.stringify(workflow)
+        });
+        
+        // Step 3: Log result
+        const result = await response.json();
+        await db.logWorkflowStep(workflowId, 'RunValidation', 'success', result);
+        await db.updateWorkflowStatus(workflowId, 'success');
+        
+      } else if (workflow.pathway === 'testing') {
+        // ... call this.env.ACTOR_TESTER ...
+      }
+      
+      return new Response("Workflow complete");
+
+    } catch (e) {
+      await db.updateWorkflowStatus(workflowId, 'failed', e.message);
+      return new Response("Workflow failed", { status: 500 });
+    }
+  }
+}
+```
+
+**E. Define the "Queue" (The Entrypoint)**
+
+Finally, update `src/index.ts` to include the `queue` handler.
+
+```typescript
+// src/index.ts
+// ... Hono app setup from previous prompt ...
+
+export default {
+  // Hono fetch for UI, API, WebSocket
+  fetch: app.fetch, 
+  
+  // Queue handler for async tasks
+  async queue(
+    batch: MessageBatch,
+    env: Env
+  ): Promise<void> {
+    for (const msg of batch.messages) {
+      const workflowId = msg.body.workflowId;
+      
+      // Get the main orchestrator DO
+      const orchestrator = env.WORKFLOW_ORCHESTRATOR.get(
+        env.WORKFLOW_ORCHESTRATOR.idFromName("main-orchestrator")
+      );
+      
+      // Tell the orchestrator to start the workflow
+      // We don't await, just fire-and-forget
+      orchestrator.fetch('/run', {
+        method: 'POST',
+        body: JSON.stringify({ workflowId })
+      });
+    }
+  }
+}
+```
+
 This architecture gives you full traceability (D1), asynchronicity (Queues), state management (DOs), and specialized logic (Agents) while using the Sandbox for secure execution.
