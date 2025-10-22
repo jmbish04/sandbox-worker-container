@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
-import { getSandbox, proxyToSandbox, Sandbox } from '@cloudflare/sandbox';
+import { getSandbox, proxyToSandbox } from '@cloudflare/sandbox';
+import { getAgentByName } from '@cloudflare/agents';
 import { handleWebSocket } from './core/websocket';
 import { getOpenAPISpec } from './api/openapi';
 import { apiRoutes } from './api/routes';
 import type { Env } from './types';
 import { TaskOrchestratorActor } from './orchestration/task-orchestrator';
 import { ErrorRecreationAgent, SolutionValidationAgent, TestingAgent } from './orchestration/agents';
+import { Sandbox } from './orchestration/sandbox-agent';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -25,13 +27,13 @@ app.get('*', async (c) => {
     return assetResponse as Response;
   }
 
-  const sandbox = getSandbox(c.env.Sandbox as any, 'default-sandbox');
+  const sandbox = getSandbox(c.env.SANDBOX as any, 'default-sandbox');
   const response = await proxyToSandbox(c.req.raw, sandbox as any);
   return response ?? new Response('Sandbox unavailable', { status: 502 });
 });
 
 app.all('*', async (c) => {
-  const sandbox = getSandbox(c.env.Sandbox as any, 'default-sandbox');
+  const sandbox = getSandbox(c.env.SANDBOX as any, 'default-sandbox');
   const response = await proxyToSandbox(c.req.raw, sandbox as any);
   return response ?? new Response('Sandbox unavailable', { status: 502 });
 });
@@ -51,8 +53,10 @@ const QUEUE_ORCHESTRATOR_NAME = 'main-orchestrator';
 export default {
   fetch: app.fetch,
   queue: async (batch: QueueBatch<TaskQueuePayload>, env: Env) => {
-    const orchestratorId = env.TASK_ORCHESTRATOR.idFromName(QUEUE_ORCHESTRATOR_NAME);
-    const orchestrator = env.TASK_ORCHESTRATOR.get(orchestratorId);
+    const orchestrator = await getAgentByName(
+      env.TASK_ORCHESTRATOR,
+      QUEUE_ORCHESTRATOR_NAME,
+    );
 
     for (const message of batch.messages) {
       const taskId = message.body?.taskId;
@@ -62,7 +66,7 @@ export default {
       }
 
       try {
-        await orchestrator.fetch('https://orchestrator/start', {
+        await orchestrator.fetch('https://orchestrator/resume', {
           method: 'POST',
           body: JSON.stringify({ taskId }),
           headers: {
