@@ -8,6 +8,11 @@ import type { Env } from './types';
 import { TaskOrchestratorActor } from './orchestration/task-orchestrator';
 import { ErrorRecreationAgent, SolutionValidationAgent, TestingAgent } from './orchestration/agents';
 import { Sandbox } from './orchestration/sandbox-agent';
+import {
+  ErrorAnalysisWorkflow,
+  TestingWorkflow,
+  ValidationWorkflow,
+} from './workflows';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -80,4 +85,13 @@ export default {
   },
 };
 
-export { Sandbox, TaskOrchestratorActor, ErrorRecreationAgent, SolutionValidationAgent, TestingAgent };
+export {
+  Sandbox,
+  TaskOrchestratorActor,
+  ErrorRecreationAgent,
+  SolutionValidationAgent,
+  TestingAgent,
+  ErrorAnalysisWorkflow,
+  ValidationWorkflow,
+  TestingWorkflow,
+};
