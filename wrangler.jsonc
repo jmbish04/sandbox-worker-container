@@ -1,8 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "multi-agent-orchestration-system",
+  "name": "gh-sandbox-container",
   "main": "src/index.ts",
   "compatibility_date": "2024-10-22",
+  "compatibility_flags": ["nodejs_compat"],
+  
+  // Durable Objects configuration
   "durable_objects": {
     "bindings": [
       {
@@ -27,6 +30,8 @@
       }
     ]
   },
+  
+  // Workflows configuration
   "workflows": [
     {
       "name": "ERROR_WORKFLOW",
@@ -44,6 +49,8 @@
       "class_name": "TestingWorkflow"
     }
   ],
+  
+  // Queues configuration
   "queues": {
     "producers": [
       {
@@ -63,25 +70,33 @@
       }
     ]
   },
+  
+  // KV Namespace binding (using the created namespace)
   "kv_namespaces": [
     {
       "binding": "KV_STATE",
-      "id": "your-kv-namespace-id"
+      "id": "684c6f00822b404ebe20c78b2516706f"
     }
   ],
+  
+  // R2 Bucket binding (using existing bucket)
   "r2_buckets": [
     {
       "binding": "R2_ARTIFACTS",
       "bucket_name": "agent-artifacts"
     }
   ],
+  
+  // D1 Database binding (using the created database)
   "d1_databases": [
     {
       "binding": "D1_METRICS",
-      "database_id": "your-d1-database-id",
+      "database_id": "8311509c-5b51-4024-bf51-5e1540692ea2",
       "database_name": "agent-metrics"
     }
   ],
+  
+  // Durable Objects migrations
   "migrations": [
     {
       "tag": "v1",
@@ -94,23 +109,49 @@
       ]
     }
   ],
+  
+  // Assets configuration
   "assets": {
     "binding": "ASSETS",
     "directory": "./public"
   },
+  
+  // AI binding
   "ai": {
     "binding": "AI"
   },
+  
+  // Container configuration
   "containers": [
     {
       "class_name": "Sandbox",
       "image": "./Dockerfile"
     }
   ],
-  "secrets": [
-    "GITHUB_TOKEN",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY"
+  
+  // Secrets Store bindings
+  // IMPORTANT: Replace YOUR_STORE_ID with your actual Secrets Store ID
+  // You can find it at: https://dash.cloudflare.com/?to=/:account/secrets-store
+  "secrets_store_secrets": [
+    {
+      "binding": "GITHUB_TOKEN",
+      "store_id": "8c42fa70938644e0a8a109744467375f", 
+      "secret_name": "GITHUB_TOKEN"
+    },
+    {
+      "binding": "OPENAI_API_KEY",
+      "store_id": "8c42fa70938644e0a8a109744467375f",
+      "secret_name": "OPENAI_API_KEY"
+    },
+    {
+      "binding": "ANTHROPIC_API_KEY",
+      "store_id": "8c42fa70938644e0a8a109744467375f",
+      "secret_name": "ANTHROPIC_API_KEY"
+    },
+    {
+      "binding": "GEMINI_API_KEY",
+      "store_id": "8c42fa70938644e0a8a109744467375f",
+      "secret_name": "GEMINI_API_KEY"
+    }
   ]
 }
