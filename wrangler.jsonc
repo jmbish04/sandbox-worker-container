@@ -5,7 +5,7 @@
   "compatibility_date": "2024-10-22",
   "compatibility_flags": ["nodejs_compat"],
 
-{
+
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
@@ -15,8 +15,7 @@
       "persist": true,
       "invocation_logs": true
     }
-  }
-},
+  },
   
   // Durable Objects configuration
   "durable_objects": {
