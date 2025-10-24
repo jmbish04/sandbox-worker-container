@@ -68,7 +68,7 @@ export class ValidationWorkflow {
     const passedCases = testCases.filter((testCase) => {
       const expected = testCase.expected ?? testCase.expectedOutput;
       const actual = testCase.actual ?? testCase.actualOutput;
-      return expected === undefined || expected === actual;
+      return expected !== undefined && expected === actual;
     }).length;
 
     const allTestsPassed = totalCases === passedCases;
