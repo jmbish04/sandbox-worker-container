@@ -58,13 +58,18 @@
         "binding": "TASK_QUEUE"
       },
       {
-        "queue": "result-queue",
+        "queue": "gh-sandbox-sdk-results",
         "binding": "RESULT_QUEUE"
       }
     ],
     "consumers": [
       {
         "queue": "task-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      },
+      {
+        "queue": "gh-sandbox-sdk-results",
         "max_batch_size": 10,
         "max_batch_timeout": 30
       }
