@@ -36,43 +36,43 @@ export function handleWebSocket(request: Request, env: Env): Response {
   const { searchParams } = new URL(request.url);
   const taskId = searchParams.get('task_id');
 
-  if (!taskId) {
-    send({ type: 'error', content: 'task_id query parameter is required' });
-    server.close(1008, 'task_id is required');
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    });
+  // Send initial connection status
+  if (taskId) {
+    send({ type: 'status_update', content: `Connected to repo-agent-worker for task ${taskId}` });
+  } else {
+    send({ type: 'status_update', content: 'Connected to repo-agent-worker (monitoring mode)' });
   }
 
-  send({ type: 'status_update', content: `Connected to repo-agent-worker for task ${taskId}` });
-
+  // Start heartbeat to keep connection alive
   heartbeat = setInterval(() => {
     send({ type: 'status_update', content: 'heartbeat' });
   }, HEARTBEAT_INTERVAL);
 
-  let lastSent = 0;
+  // Only poll logs if we have a task_id
+  if (taskId) {
+    let lastSent = 0;
 
-  const pollLogs = async () => {
-    try {
-      const cachedLogs = await getCachedTaskLogs(env.TASK_CACHE, taskId);
-      if (!cachedLogs.length || cachedLogs.length === lastSent) {
-        return;
+    const pollLogs = async () => {
+      try {
+        const cachedLogs = await getCachedTaskLogs(env.TASK_CACHE, taskId);
+        if (!cachedLogs.length || cachedLogs.length === lastSent) {
+          return;
+        }
+
+        for (let index = lastSent; index < cachedLogs.length; index += 1) {
+          send(cachedLogs[index]);
+        }
+        lastSent = cachedLogs.length;
+      } catch (error) {
+        console.error('Failed to poll cached logs', error);
       }
+    };
 
-      for (let index = lastSent; index < cachedLogs.length; index += 1) {
-        send(cachedLogs[index]);
-      }
-      lastSent = cachedLogs.length;
-    } catch (error) {
-      console.error('Failed to poll cached logs', error);
-    }
-  };
-
-  pollLogs().catch((error) => console.error('Initial log poll failed', error));
-  poller = setInterval(() => {
-    pollLogs().catch((error) => console.error('Repeated log poll failed', error));
-  }, LOG_POLL_INTERVAL);
+    pollLogs().catch((error) => console.error('Initial log poll failed', error));
+    poller = setInterval(() => {
+      pollLogs().catch((error) => console.error('Repeated log poll failed', error));
+    }, LOG_POLL_INTERVAL);
+  }
 
   server.addEventListener('message', (event) => {
     if (typeof event.data !== 'string') {
