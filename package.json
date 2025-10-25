@@ -6,8 +6,8 @@
   "description": "A Cloudflare worker that powers the repo agent with real-time streaming and a SaaS-style frontend",
   "scripts": {
   "build": "npm run build:css && npx wrangler build",
-  "migrate:remote": "npx wrangler d1 migrations apply DB --remote",
-  "migrate:local": "npx wrangler d1 migrations apply DB --local",
+  "migrate:remote": "npx wrangler d1 migrations apply D1_METRICS --remote",
+  "migrate:local": "npx wrangler d1 migrations apply D1_METRICS --local",
   "deploy": "npm run migrate:remote && npm run build && wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
