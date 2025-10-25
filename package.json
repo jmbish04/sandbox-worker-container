@@ -1,5 +1,5 @@
 {
-  "name": "repo-agent-worker",
+  "name": "sandbox-worker-container",
   "version": "1.0.0",
   "type": "module",
   "private": true,
