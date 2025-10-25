@@ -1,6 +1,8 @@
 const state = {
   ws: null,
   reconnectTimeout: null,
+  reconnectAttempts: 0,
+  currentTaskId: null,
 };
 
 const statusTextEl = () => document.querySelector('[data-status-text]');
@@ -28,19 +30,42 @@ const appendLog = (containerId, content, { preserveWhitespace = false } = {}) =>
   container.scrollTop = container.scrollHeight;
 };
 
-const connectWebSocket = () => {
+const connectWebSocket = (taskId = null) => {
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${protocol}://${location.host}/ws`;
 
+  // Check for task_id in URL query parameters if not provided
+  if (!taskId) {
+    const urlParams = new URLSearchParams(location.search);
+    taskId = urlParams.get('task_id');
+  }
+
+  // Build WebSocket URL with optional task_id
+  let url = `${protocol}://${location.host}/ws`;
+  if (taskId) {
+    url += `?task_id=${encodeURIComponent(taskId)}`;
+  }
+
+  // Clear any pending reconnect
+  if (state.reconnectTimeout) {
+    clearTimeout(state.reconnectTimeout);
+    state.reconnectTimeout = null;
+  }
+
+  // Close existing connection
   if (state.ws) {
     state.ws.close();
   }
+
+  // Store current task_id
+  state.currentTaskId = taskId;
 
   const ws = new WebSocket(url);
   state.ws = ws;
 
   ws.addEventListener('open', () => {
-    setStatus('Connected', false);
+    state.reconnectAttempts = 0;
+    const mode = taskId ? `task ${taskId}` : 'monitoring mode';
+    setStatus(`Connected (${mode})`, false);
   });
 
   ws.addEventListener('message', (event) => {
@@ -58,6 +83,10 @@ const connectWebSocket = () => {
             setStatus(msg.content || 'Status update', false);
           }
           break;
+        case 'error':
+          appendLog('terminal-log', `❌ Error: ${msg.content ?? event.data}`, { preserveWhitespace: true });
+          setStatus('Error received', false);
+          break;
         default:
           appendLog('ai-thoughts-log', `[${msg.type ?? 'message'}] ${msg.content ?? event.data}`);
       }
@@ -66,13 +95,22 @@ const connectWebSocket = () => {
     }
   });
 
-  ws.addEventListener('close', () => {
-    setStatus('Disconnected - retrying…', true);
-    state.reconnectTimeout = setTimeout(connectWebSocket, 5_000);
+  ws.addEventListener('close', (event) => {
+    console.log('WebSocket closed:', event.code, event.reason);
+
+    // Use exponential backoff for reconnection
+    state.reconnectAttempts += 1;
+    const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts - 1), 30000); // Max 30 seconds
+
+    setStatus(`Disconnected (reconnecting in ${Math.round(delay / 1000)}s)`, true);
+    state.reconnectTimeout = setTimeout(() => {
+      connectWebSocket(state.currentTaskId);
+    }, delay);
   });
 
-  ws.addEventListener('error', () => {
-    setStatus('WebSocket error', true);
+  ws.addEventListener('error', (event) => {
+    console.error('WebSocket error:', event);
+    setStatus('WebSocket connection error', true);
   });
 };
 
@@ -121,6 +159,12 @@ const attachFormHandlers = () => {
         appendLog('ai-thoughts-log', `✅ ${pathway} invoked successfully`);
         appendLog('terminal-log', JSON.stringify(result, null, 2), { preserveWhitespace: true });
         setStatus('Invocation complete', false);
+
+        // If the result contains a task_id, reconnect WebSocket with it
+        if (result.task_id) {
+          appendLog('ai-thoughts-log', `📡 Connecting to task stream: ${result.task_id}`);
+          connectWebSocket(result.task_id);
+        }
       } catch (error) {
         appendLog('terminal-log', `Invocation failed: ${error instanceof Error ? error.message : error}`, {
           preserveWhitespace: true,
